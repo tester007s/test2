@@ -1,19 +1,23 @@
-FROM ksoichiro/android
+FROM softsam/adb:latest
 
-MAINTAINER ksoichiro "soichiro.kashima@gmail.com"
+MAINTAINER softsam
 
-RUN echo y | android update sdk --filter platform-tools,build-tools-19.0.3,sysimg-17,android-17,extra-android-support --no-ui --force
+# Install all dependencies
+RUN apt-get update && \
+    apt-get install -y wget redir && \
+    apt-get clean && \
+    apt-get autoclean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Set up and run emulator
-RUN echo no | android create avd --force -n test -t android-17
-# Avoid emulator assumes HOME as '/'.
-ENV HOME /root
-ADD wait-for-emulator /usr/local/bin/
-ADD start-emulator /usr/local/bin/
+# Expose android port
+EXPOSE 5555
+# VNC port
+EXPOSE 5900
 
-RUN mkdir -p /opt/tmp && android create project -g -v 0.9.+ -a MainActivity -k com.example.example -t android-17 -p /opt/tmp
-RUN cd /opt/tmp && ./gradlew tasks
-RUN rm -rf /opt/tmp
+# Needed to be able to run VNC - bug of Android SDK
+RUN mkdir ${ANDROID_HOME}/tools/keymaps && touch ${ANDROID_HOME}/tools/keymaps/en-us
 
-VOLUME /workspace
-WORKDIR /workspace
+# Add script
+ADD start.sh /start.sh
+RUN chmod +x /start.sh
+CMD /start.sh
